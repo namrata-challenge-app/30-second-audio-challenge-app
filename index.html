@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>30 Sec Challenge Game</title>
+</head>
+<body style="text-align:center; font-family:Arial; background:linear-gradient(to right, #667eea, #764ba2); color:white;">
+
+  <h1>🎯 30 Sec Challenge</h1>
+
+  <button onclick="startChallenge()" style="
+  padding:15px 30px;
+  font-size:18px;
+  background:#ff9800;
+  border:none;
+  border-radius:10px;
+  color:white;
+  cursor:pointer;
+">
+  ▶️ Start Challenge
+</button>
+
+  <h2 id="challenge" style="margin-top:20px; font-size:24px;"></h2>
+  <h3 id="timer" style="font-size:30px;"></h3>
+
+  <h3>📂 Recording List</h3>
+<div id="recordingsList"></div>
+
+  <script>
+    let challenges = [
+      "Talk in a pirate accent",
+      "Sing a song",
+      "Tell a joke",
+      "Speak in a robot voice",
+      "Say tongue twister fast"
+    ];
+
+    let mediaRecorder;
+    let audioChunks = [];
+    let audioURL;
+    let recordings = [];
+
+    function startChallenge() {
+      // Random challenge
+      let random = challenges[Math.floor(Math.random() * challenges.length)];
+      document.getElementById("challenge").innerText = random;
+
+      // Timer
+      let timeLeft = 30;
+      document.getElementById("timer").innerText = timeLeft;
+
+      let timer = setInterval(() => {
+        timeLeft--;
+        document.getElementById("timer").innerText = timeLeft;
+
+        if (timeLeft <= 0) {
+          clearInterval(timer);
+          stopRecording();
+          document.getElementById("timer").innerText = "Time's up!";
+        }
+      }, 1000);
+
+      startRecording();
+    }
+
+    async function startRecording() {
+      let stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      mediaRecorder = new MediaRecorder(stream);
+
+      mediaRecorder.start();
+
+      audioChunks = [];
+
+      mediaRecorder.ondataavailable = event => {
+        audioChunks.push(event.data);
+      };
+
+      mediaRecorder.onstop = () => {
+  let audioBlob = new Blob(audioChunks);
+  let url = URL.createObjectURL(audioBlob);
+
+  // Last recording ke liye (existing play button)
+  audioURL = url;
+
+  // Save in list
+  recordings.push({
+    challenge: document.getElementById("challenge").innerText,
+    audio: url
+  });
+
+  displayRecordings();
+};
+    }
+
+    function stopRecording() {
+      if (mediaRecorder) {
+        mediaRecorder.stop();
+      }
+    }  
+
+    function displayRecordings() {
+  let list = document.getElementById("recordingsList");
+  list.innerHTML = "";
+
+  recordings.forEach((rec, index) => {
+    let div = document.createElement("div");
+
+    div.innerHTML = `
+      <p>${rec.challenge}</p>
+      <button onclick="playSaved(${index})">▶️ Play</button>
+      <hr/>
+    `;
+
+    list.appendChild(div);
+  });
+}
+
+function playSaved(index) {
+  let audio = new Audio(recordings[index].audio);
+  audio.play();
+}
+  </script>
+
+</body>
+</html>
