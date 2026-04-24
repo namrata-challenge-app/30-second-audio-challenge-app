@@ -29,110 +29,100 @@
   <div id="recordingsList"></div>
 
   <script>
-    let challenges = [
-      "Talk in a pirate accent",
-      "Sing a song",
-      "Tell a joke",
-      "Speak in a robot voice",
-      "Say tongue twister fast"
-    ];
+let challenges = [
+  "Talk in a pirate accent",
+  "Sing a song",
+  "Tell a joke",
+  "Speak in a robot voice",
+  "Say tongue twister fast"
+];
 
-    let mediaRecorder;
-    let audioChunks = [];
-    let audioURL;
-    let recordings = [];
+let mediaRecorder;
+let audioChunks = [];
+let recordings = [];
 
-    async startChallenge() {
-      // Random challenge
-      let random = challenges[Math.floor(Math.random() * challenges.length)];
-      document.getElementById("challenge").innerText = random;
+function startChallenge() {
+  let random = challenges[Math.floor(Math.random() * challenges.length)];
+  document.getElementById("challenge").innerText = random;
 
-      // Timer
-      let timeLeft = 30;
-      document.getElementById("timer").innerText = timeLeft;
+  let timeLeft = 30;
+  document.getElementById("timer").innerText = timeLeft;
 
-      let timer = setInterval(() => {
-        timeLeft--;
-        document.getElementById("timer").innerText = timeLeft;
+  let timer = setInterval(() => {
+    timeLeft--;
+    document.getElementById("timer").innerText = timeLeft;
 
-        if (timeLeft <= 0) {
-          clearInterval(timer);
-          stopRecording();
-          document.getElementById("timer").innerText = "Time's up!";
-        }
-      }, 1000);
-
-      startRecording();
+    if (timeLeft <= 0) {
+      clearInterval(timer);
+      stopRecording();
+      document.getElementById("timer").innerText = "Time's up!";
     }
+  }, 1000);
 
-    async function startRecording() {
-      let stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      let options = { mimeType: "audio/mp4" };
+  startRecording();
+}
 
-      if (!MediaRecorder.isTypeSupported("audio/mp4")) {
-        options = { mimeType: "audio/webm" };
-      }
+async function startRecording() {
+  try {
+    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
 
-      mediaRecorder = new MediaRecorder(stream, options);
+    mediaRecorder = new MediaRecorder(stream);
+    audioChunks = [];
 
-      mediaRecorder.start();
-
-      audioChunks = [];
-
-      mediaRecorder.ondataavailable = event => {
+    mediaRecorder.ondataavailable = event => {
+      if (event.data.size > 0) {
         audioChunks.push(event.data);
-      };
-
-      mediaRecorder.onstop = () => {
-        let audioBlob = new Blob(audioChunks, { type: mediaRecorder.mimeType });
-        let url = URL.createObjectURL(audioBlob);
-
-        // Last recording ke liye (existing play button)
-        audioURL = url;
-
-        // Save in list
-        recordings.push({
-          challenge: document.getElementById("challenge").innerText,
-          audio: url
-        });
-
-        displayRecordings();
-      };
-    }
-
-    function stopRecording() {
-      if (mediaRecorder) {
-        mediaRecorder.stop();
       }
-    }
+    };
 
-    function displayRecordings() {
-      let list = document.getElementById("recordingsList");
-      list.innerHTML = "";
+    mediaRecorder.onstop = () => {
+      const audioBlob = new Blob(audioChunks);
+      const url = URL.createObjectURL(audioBlob);
 
-      recordings.forEach((rec, index) => {
-        let div = document.createElement("div");
+      recordings.push({
+        challenge: document.getElementById("challenge").innerText,
+        audio: url
+      });
 
-        div.innerHTML = `
+      displayRecordings();
+    };
+
+    mediaRecorder.start();
+
+  } catch (err) {
+    alert("Mic access issue or browser not supported");
+    console.error(err);
+  }
+}
+
+function stopRecording() {
+  if (mediaRecorder && mediaRecorder.state !== "inactive") {
+    mediaRecorder.stop();
+  }
+}
+
+function displayRecordings() {
+  let list = document.getElementById("recordingsList");
+  list.innerHTML = "";
+
+  recordings.forEach((rec, index) => {
+    let div = document.createElement("div");
+
+    div.innerHTML = `
       <p>${rec.challenge}</p>
       <button onclick="playSaved(${index})">▶️ Play</button>
       <hr/>
     `;
 
-        list.appendChild(div);
-      });
-    }
+    list.appendChild(div);
+  });
+}
 
-    function playSaved(index) {
-      let audio = new Audio(recordings[index].audio);
-      audio.muted = false;
-      audio.setAttribute("playsinline", true);
-
-      audio.play().catch(e => {
-        alert("Tap again to play audio");
-      });
-    }
-  </script>
+function playSaved(index) {
+  let audio = new Audio(recordings[index].audio);
+  audio.play();
+}
+</script>
 
 </body>
 
