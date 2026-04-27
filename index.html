@@ -5,37 +5,54 @@
   <title>30 Sec Challenge Game</title>
 </head>
 
-<body
-  style="text-align:center; font-family:Arial; background:linear-gradient(to right, #667eea, #764ba2); color:white;">
+<body style="
+  margin:0;
+  text-align:center;
+  font-family:Arial;
+  background:linear-gradient(to right, #667eea, #764ba2);
+  color:white;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  height:100vh;
+">
 
   <h1>🎯 30 Sec Challenge</h1>
 
-  <p style="
-  font-size:14px;
-  background:rgba(255,0,0,0.2);
-  padding:8px;
-  border-radius:8px;
-  display:inline-block;
-">
-    ⚠️ Best experienced on Android/Desktop
-  </p>
+  <div style="margin-top:20px;">
 
-  <button onclick="startChallenge()" style="
-  padding:15px 30px;
-  font-size:18px;
-  background:#ff9800;
-  border:none;
-  border-radius:10px;
-  color:white;
-  cursor:pointer;
-">
-    ▶️ Start Challenge
-  </button>
+    <p style="
+    font-size:14px;
+    background:rgba(255,0,0,0.2);
+    padding:8px 12px;
+    border-radius:8px;
+    display:inline-block;
+    margin-bottom:10px;
+  ">
+      ⚠️ Best experienced on Android/Desktop
+    </p>
+
+    <br />
+
+    <button onclick="startChallenge()" style="
+    padding:15px 30px;
+    font-size:18px;
+    background:#ff9800;
+    border:none;
+    border-radius:10px;
+    color:white;
+    cursor:pointer;
+  ">
+      ▶️ Start Challenge
+    </button>
+
+  </div>
 
   <h2 id="challenge" style="margin-top:20px; font-size:24px;"></h2>
   <h3 id="timer" style="font-size:30px;"></h3>
 
-  <h3>📂 Recording List</h3>
+  <h3 style="margin-top:30px;">📂 Recording List</h3>
   <div id="recordingsList"></div>
 
   <script>
