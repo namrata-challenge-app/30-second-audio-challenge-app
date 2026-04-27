@@ -42,6 +42,11 @@ let audioChunks = [];
 let recordings = [];
 
 function startChallenge() {
+
+  if (!window.MediaRecorder) {
+    alert("⚠️ Recording not supported on iPhone. Please use Android or Desktop.");
+    return;
+  }
   let random = challenges[Math.floor(Math.random() * challenges.length)];
   document.getElementById("challenge").innerText = random;
 
