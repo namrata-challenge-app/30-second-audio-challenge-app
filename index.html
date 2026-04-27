@@ -70,31 +70,32 @@
 
     function startChallenge() {
 
-      let isIphone = /iPhone|iPad|iPod/i.test(navigator.userAgent);
+  let isIphone = /iPhone|iPad|iPod/i.test(navigator.userAgent);
 
-      if (isIphone || !window.MediaRecorder) {
-        alert("⚠️ Recording not supported properly on iPhone. Please use Android or Desktop.");
-        return;
-      }
-      let random = challenges[Math.floor(Math.random() * challenges.length)];
-      document.getElementById("challenge").innerText = random;
+  if (isIphone) {
+    alert("⚠️ Recording not supported properly on iPhone. Please use Android or Desktop.");
+    return;
+  }
 
-      let timeLeft = 30;
-      document.getElementById("timer").innerText = timeLeft;
+  let random = challenges[Math.floor(Math.random() * challenges.length)];
+  document.getElementById("challenge").innerText = random;
 
-      let timer = setInterval(() => {
-        timeLeft--;
-        document.getElementById("timer").innerText = timeLeft;
+  let timeLeft = 30;
+  document.getElementById("timer").innerText = timeLeft;
 
-        if (timeLeft <= 0) {
-          clearInterval(timer);
-          stopRecording();
-          document.getElementById("timer").innerText = "Time's up!";
-        }
-      }, 1000);
+  let timer = setInterval(() => {
+    timeLeft--;
+    document.getElementById("timer").innerText = timeLeft;
 
-      startRecording();
+    if (timeLeft <= 0) {
+      clearInterval(timer);
+      stopRecording();
+      document.getElementById("timer").innerText = "Time's up!";
     }
+  }, 1000);
+
+  startRecording();
+}
 
     async function startRecording() {
       try {
