@@ -10,6 +10,16 @@
 
   <h1>🎯 30 Sec Challenge</h1>
 
+  <p style="
+  font-size:14px;
+  background:rgba(255,0,0,0.2);
+  padding:8px;
+  border-radius:8px;
+  display:inline-block;
+">
+    ⚠️ Best experienced on Android/Desktop
+  </p>
+
   <button onclick="startChallenge()" style="
   padding:15px 30px;
   font-size:18px;
@@ -29,105 +39,105 @@
   <div id="recordingsList"></div>
 
   <script>
-let challenges = [
-  "Talk in a pirate accent",
-  "Sing a song",
-  "Tell a joke",
-  "Speak in a robot voice",
-  "Say tongue twister fast"
-];
+    let challenges = [
+      "Talk in a pirate accent",
+      "Sing a song",
+      "Tell a joke",
+      "Speak in a robot voice",
+      "Say tongue twister fast"
+    ];
 
-let mediaRecorder;
-let audioChunks = [];
-let recordings = [];
+    let mediaRecorder;
+    let audioChunks = [];
+    let recordings = [];
 
-function startChallenge() {
+    function startChallenge() {
 
-  if (!window.MediaRecorder) {
-    alert("⚠️ Recording not supported on iPhone. Please use Android or Desktop.");
-    return;
-  }
-  let random = challenges[Math.floor(Math.random() * challenges.length)];
-  document.getElementById("challenge").innerText = random;
-
-  let timeLeft = 30;
-  document.getElementById("timer").innerText = timeLeft;
-
-  let timer = setInterval(() => {
-    timeLeft--;
-    document.getElementById("timer").innerText = timeLeft;
-
-    if (timeLeft <= 0) {
-      clearInterval(timer);
-      stopRecording();
-      document.getElementById("timer").innerText = "Time's up!";
-    }
-  }, 1000);
-
-  startRecording();
-}
-
-async function startRecording() {
-  try {
-    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-
-    mediaRecorder = new MediaRecorder(stream);
-    audioChunks = [];
-
-    mediaRecorder.ondataavailable = event => {
-      if (event.data.size > 0) {
-        audioChunks.push(event.data);
+      if (!window.MediaRecorder) {
+        alert("⚠️ Recording not supported on iPhone. Please use Android or Desktop.");
+        return;
       }
-    };
+      let random = challenges[Math.floor(Math.random() * challenges.length)];
+      document.getElementById("challenge").innerText = random;
 
-    mediaRecorder.onstop = () => {
-      const audioBlob = new Blob(audioChunks);
-      const url = URL.createObjectURL(audioBlob);
+      let timeLeft = 30;
+      document.getElementById("timer").innerText = timeLeft;
 
-      recordings.push({
-        challenge: document.getElementById("challenge").innerText,
-        audio: url
-      });
+      let timer = setInterval(() => {
+        timeLeft--;
+        document.getElementById("timer").innerText = timeLeft;
 
-      displayRecordings();
-    };
+        if (timeLeft <= 0) {
+          clearInterval(timer);
+          stopRecording();
+          document.getElementById("timer").innerText = "Time's up!";
+        }
+      }, 1000);
 
-    mediaRecorder.start();
+      startRecording();
+    }
 
-  } catch (err) {
-    alert("Mic access issue or browser not supported");
-    console.error(err);
-  }
-}
+    async function startRecording() {
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
 
-function stopRecording() {
-  if (mediaRecorder && mediaRecorder.state !== "inactive") {
-    mediaRecorder.stop();
-  }
-}
+        mediaRecorder = new MediaRecorder(stream);
+        audioChunks = [];
 
-function displayRecordings() {
-  let list = document.getElementById("recordingsList");
-  list.innerHTML = "";
+        mediaRecorder.ondataavailable = event => {
+          if (event.data.size > 0) {
+            audioChunks.push(event.data);
+          }
+        };
 
-  recordings.forEach((rec, index) => {
-    let div = document.createElement("div");
+        mediaRecorder.onstop = () => {
+          const audioBlob = new Blob(audioChunks);
+          const url = URL.createObjectURL(audioBlob);
 
-    div.innerHTML = `
+          recordings.push({
+            challenge: document.getElementById("challenge").innerText,
+            audio: url
+          });
+
+          displayRecordings();
+        };
+
+        mediaRecorder.start();
+
+      } catch (err) {
+        alert("Mic access issue or browser not supported");
+        console.error(err);
+      }
+    }
+
+    function stopRecording() {
+      if (mediaRecorder && mediaRecorder.state !== "inactive") {
+        mediaRecorder.stop();
+      }
+    }
+
+    function displayRecordings() {
+      let list = document.getElementById("recordingsList");
+      list.innerHTML = "";
+
+      recordings.forEach((rec, index) => {
+        let div = document.createElement("div");
+
+        div.innerHTML = `
       <p>${rec.challenge}</p>
       <button onclick="playSaved(${index})">▶️ Play</button>
       <hr/>
     `;
 
-    list.appendChild(div);
-  });
-}
+        list.appendChild(div);
+      });
+    }
 
-function playSaved(index) {
-  let audio = new Audio(recordings[index].audio);
-  audio.play();
-}
-</script>
+    function playSaved(index) {
+      let audio = new Audio(recordings[index].audio);
+      audio.play();
+    }
+  </script>
 
 </body>
 
