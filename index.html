@@ -70,8 +70,10 @@
 
     function startChallenge() {
 
-      if (!window.MediaRecorder) {
-        alert("⚠️ Recording not supported on iPhone. Please use Android or Desktop.");
+      let isIphone = /iPhone|iPad|iPod/i.test(navigator.userAgent);
+
+      if (isIphone || !window.MediaRecorder) {
+        alert("⚠️ Recording not supported properly on iPhone. Please use Android or Desktop.");
         return;
       }
       let random = challenges[Math.floor(Math.random() * challenges.length)];
