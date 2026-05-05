@@ -2,7 +2,44 @@
 <html>
 
 <head>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>30 Sec Challenge Game</title>
+
+  <style>
+    button:hover {
+      transform: scale(1.05);
+      transition: 0.2s;
+    }
+
+    #challenge {
+      transition: all 0.2s ease;
+    }
+
+    @keyframes pulse {
+      0% {
+        transform: scale(1);
+        box-shadow: 0 0 0 0 rgba(255, 105, 180, 0.7);
+      }
+
+      70% {
+        transform: scale(1.08);
+        box-shadow: 0 0 0 15px rgba(255, 105, 180, 0);
+      }
+
+      100% {
+        transform: scale(1);
+        box-shadow: 0 0 0 0 rgba(255, 105, 180, 0);
+      }
+    }
+
+    #startBtn {
+      animation: pulse 2s infinite;
+    }
+
+    button:active {
+      transform: scale(0.95);
+    }
+  </style>
 </head>
 
 <body style="
@@ -17,8 +54,29 @@
   justify-content:center;
   height:100vh;
 ">
+  <div id="popup" style="
+  position:fixed;
+  bottom:20px;
+  left:50%;
+  transform:translateX(-50%);
+  background:rgba(0,0,0,0.8);
+  color:white;
+  padding:15px 20px;
+  border-radius:12px;
+  font-size:14px;
+  max-width:90%;
+  display:none;
+  z-index:1000;
+  text-align:center;
+"></div>
+  <p style="font-size:13px; opacity:0.8;">
+    🎥 Idea: Apna reaction + recording add karo 😄
+  </p>
+  <h1 style="font-size:32px; letter-spacing:1px;">
+    🎯 30 Sec Challenge 🔥
+  </h1>
 
-  <h1>🎯 30 Sec Challenge</h1>
+  <h3 id="score">Score: 0</h3>
 
   <div style="margin-top:20px;">
 
@@ -35,71 +93,203 @@
 
     <br />
 
-    <button onclick="startChallenge()" style="
-    padding:15px 30px;
-    font-size:18px;
-    background:#ff9800;
-    border:none;
-    border-radius:10px;
-    color:white;
-    cursor:pointer;
-  ">
-      ▶️ Start Challenge
+    <button id="startBtn" onclick="startChallenge()" style="
+  padding:18px 35px;
+  font-size:20px;
+  background:linear-gradient(45deg, #ff6a00, #ee0979);
+  border:none;
+  border-radius:30px;
+  color:white;
+  cursor:pointer;
+  box-shadow:0 4px 15px rgba(0,0,0,0.3);
+">
+      🚀 Start Challenge
     </button>
+
+    <button onclick="location.reload()" style="
+  margin-top:20px;
+  padding:10px 20px;
+  border:none;
+  border-radius:10px;
+  background:#ff9800;
+  color:white;
+">🔄 Restart</button>
+
+    <button id="stopBtn" onclick="stopRecording()" style="
+  margin-top:10px;
+  padding:10px 20px;
+  border:none;
+  border-radius:10px;
+  background:#f44336;
+  color:white;
+  cursor:pointer;
+  display:none;
+">⏹ Stop</button>
 
   </div>
 
   <h2 id="challenge" style="margin-top:20px; font-size:24px;"></h2>
   <h3 id="timer" style="font-size:30px;"></h3>
 
+  <div style="
+  width:80%;
+  max-width:300px;
+  height:8px;
+  background:rgba(255,255,255,0.2);
+  border-radius:10px;
+  overflow:hidden;
+  margin-top:10px;
+">
+    <div id="progressBar" style="
+    width:0%;
+    height:100%;
+    background:#ff4d4d;
+    transition: width 1s linear;
+  "></div>
+  </div>
+
   <h3 style="margin-top:30px;">📂 Recording List</h3>
   <div id="recordingsList"></div>
 
   <script>
+
     let challenges = [
-      "Talk in a pirate accent",
-      "Sing a song",
-      "Tell a joke",
-      "Speak in a robot voice",
-      "Say tongue twister fast"
+      "Say I love you in 5 styles ❤️",
+      "Talk in a pirate accent 🏴‍☠️",
+      "Speak in a robot voice 🤖",
+      "Say tongue twister fast 😵",
+      "Talk like a Bollywood villain 😈",
+      "Act like a baby 👶",
+      "Speak without using lips 🤐",
+      "Sing like a famous singer 🎤",
+      "Talk in slow motion 🐢",
+      "Pretend you are angry 😡"
+    ];
+
+    let soundEffects = [
+      "sounds/laugh1.mp3",
+      "sounds/laugh2.mp3",
+      "sounds/laugh3.mp3",
+      "sounds/laugh4.mp3",
+      "sounds/laugh5.mp3",
+      "sounds/clap1.mp3",
+      "sounds/clap2.mp3",
+      "sounds/clap3.mp3",
+      "sounds/wow1.mp3",
+      "sounds/wow2.mp3",
+      "sounds/drum1.mp3",
+      "sounds/drum2.mp3",
+      "sounds/drum3.mp3",
+      "sounds/drum4.mp3",
+      "sounds/cat1.mp3",
+      "sounds/cat2.mp3",
+      "sounds/cat3.mp3"
     ];
 
     let mediaRecorder;
     let audioChunks = [];
     let recordings = [];
+    let currentAudio = null;
+    let isRecording = false;
+    let timer = null;
+    let score = 0;
+    let stream;
+    let currentEffect = null;
+    let beepSound = new Audio("sounds/beep.mp3");
+    let currentChallengeText = "";
+    let recentChallenges = [];
+    let popupTimer;
+    let preloadedSounds = {};
+    soundEffects.forEach(src => {
+      preloadedSounds[src] = new Audio(src);
+    });
+    const startBtn = document.getElementById("startBtn");
+    const stopBtn = document.getElementById("stopBtn");
+    const timerEl = document.getElementById("timer");
+    const challengeEl = document.getElementById("challenge");
+    const scoreEl = document.getElementById("score");
+    const recordingsListEl = document.getElementById("recordingsList");
+    const progressBar = document.getElementById("progressBar");
+    const emojis = ["😂", "🔥", "😱", "👏", "🤣", "😎"];
 
     function startChallenge() {
 
-  let isIphone = /iPhone|iPad|iPod/i.test(navigator.userAgent);
+      progressBar.style.width = "0%";
+      if (isRecording) return;
+      startBtn.style.opacity = "1";
+      document.getElementById("startBtn").innerText = "⏳ Starting...";
+      document.getElementById("startBtn").style.pointerEvents = "none";
+      document.getElementById("startBtn").style.animation = "none";
+      // timer color reset
+      document.getElementById("timer").style.color = "white";
+      document.getElementById("timer").innerText = "";
+      // stop any playing audio before new recording
+      if (currentAudio) {
+        currentAudio.pause();
+        currentAudio.src = "";
+        currentAudio = null;
+      }
+      document.getElementById("startBtn").disabled = true;
+      disablePlayButtons();
 
-  if (isIphone) {
-   alert("⚠️ This game works best on Android/Desktop. Please try there 😊");
-    return;
-  }
+      let isIphone = /iPhone|iPad|iPod/i.test(navigator.userAgent);
 
-  let random = challenges[Math.floor(Math.random() * challenges.length)];
-  document.getElementById("challenge").innerText = random;
+      if (isIphone) {
+        showPopup("⚠️ This game works best on Android/Desktop. Please try there 😊");
 
-  let timeLeft = 30;
-  document.getElementById("timer").innerText = timeLeft;
+        let btn = document.getElementById("startBtn");
+        btn.style.opacity = "0.7";
+        btn.disabled = false;
+        btn.style.pointerEvents = "auto";
+        btn.innerText = "🚀 Start Challenge"; // ✅ FIX
+        btn.style.animation = "pulse 2s infinite"; // ✅ FIX
 
-  let timer = setInterval(() => {
-    timeLeft--;
-    document.getElementById("timer").innerText = timeLeft;
+        return;
+      }
 
-    if (timeLeft <= 0) {
-      clearInterval(timer);
-      stopRecording();
-      document.getElementById("timer").innerText = "Time's up!";
+      let random;
+      if (recentChallenges.length === challenges.length) {
+        recentChallenges = [];
+      }
+      do {
+        random = challenges[Math.floor(Math.random() * challenges.length)];
+      } while (recentChallenges.includes(random));
+
+      recentChallenges.push(random);
+
+      // sirf last 5 track karo
+      if (recentChallenges.length > 5) {
+        recentChallenges.shift();
+      }
+      currentChallengeText = random;
+      challengeEl.innerText = random;
+      // 🎯 WOW animation
+      challengeEl.style.transform = "scale(1.1)";
+      setTimeout(() => {
+        challengeEl.style.transform = "scale(1)";
+      }, 200);
+      document.getElementById("challenge").style.color = "white";
+      startRecording();
     }
-  }, 1000);
-
-  startRecording();
-}
 
     async function startRecording() {
+
+      if (timer !== null) {
+        clearInterval(timer);
+      }
+      if (stream) {
+        stream.getTracks().forEach(track => track.stop());
+      }
+      document.getElementById("challenge").style.color = "#FFD700";
+      document.getElementById("challenge").innerText = currentChallengeText + " 🎤";
       try {
-        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        stream = await navigator.mediaDevices.getUserMedia({
+          audio: {
+            echoCancellation: true,
+            noiseSuppression: true,
+            autoGainControl: true
+          }
+        });
 
         mediaRecorder = new MediaRecorder(stream);
         audioChunks = [];
@@ -111,54 +301,476 @@
         };
 
         mediaRecorder.onstop = () => {
-          const audioBlob = new Blob(audioChunks);
+
+          document.getElementById("stopBtn").style.display = "none";
+          let btn = document.getElementById("startBtn");
+          btn.style.opacity = "1";
+          btn.disabled = false;
+          btn.style.pointerEvents = "auto";
+          btn.innerText = "🚀 Start Challenge";
+          btn.style.animation = "pulse 2s infinite";
+
+          document.getElementById("challenge").style.color = "white";
+
+          isRecording = false;
+          enablePlayButtons();
+
+          const audioBlob = new Blob(audioChunks, { type: "audio/webm" });
           const url = URL.createObjectURL(audioBlob);
 
+          let randomEffect = getSoundEffect(currentChallengeText);
+
+          // ✅ Memory cleanup (already correct)
+          if (recordings.length > 19) {
+            if (recordings[0] && recordings[0].audio) {
+              URL.revokeObjectURL(recordings[0].audio);
+            }
+            recordings.shift();
+          }
+
           recordings.push({
-            challenge: document.getElementById("challenge").innerText,
-            audio: url
+            challenge: currentChallengeText,
+            audio: url,
+            effect: randomEffect
           });
 
           displayRecordings();
+
+          challengeEl.style.transform = "scale(1.1)";
+          setTimeout(() => {
+            challengeEl.style.transform = "scale(1)";
+          }, 200);
+
+          setTimeout(() => {
+            playSaved(recordings.length - 1);
+          }, 400);
+
         };
 
+        let challengeMsg = `🔥 I scored ${score} in 30 Sec Challenge!\n\n🎤 Challenge: "${currentChallengeText}"\n\n😈 Can you beat me?\n👉 Play now & challenge 3 friends!`;
+        setTimeout(() => {
+          showPopup(challengeMsg);
+        }, 800);
+
         mediaRecorder.start();
+        toggleStopButton(true);
+        beepSound.currentTime = 0;
+        beepSound.play().catch(() => { });
+        isRecording = true;
+        let timeLeft = 30;
+        timerEl.innerText = timeLeft;
+
+        timer = setInterval(() => {
+          timeLeft--;
+
+          let percent = ((30 - timeLeft) / 30) * 100;
+          progressBar.style.width = percent + "%";
+
+          timerEl.innerText = timeLeft;
+
+          if (timeLeft === 29) {
+            document.getElementById("challenge").style.transform = "scale(1.1)";
+          }
+          if (timeLeft === 28) {
+            document.getElementById("challenge").style.transform = "scale(1)";
+          }
+
+          if (timeLeft <= 5) {
+            document.getElementById("timer").style.color = "red";
+
+            // 📳 vibration (mobile only)
+            if (navigator.vibrate) {
+              navigator.vibrate(200);
+            }
+          }
+          if (timeLeft <= 3 && timeLeft > 0) {
+            beepSound.currentTime = 0;
+            beepSound.volume = 0.6;
+            beepSound.play().catch(() => { });
+          }
+          if (timeLeft <= 0) {
+            score++;
+            document.getElementById("score").innerText = "Score: " + score;
+            stopRecording();
+            document.getElementById("timer").innerText = "⏰ Time's up!";
+            document.getElementById("challenge").style.transform = "scale(1.1)";
+            setTimeout(() => {
+              document.getElementById("challenge").style.transform = "scale(1)";
+            }, 200);
+            document.getElementById("timer").style.color = "white";
+            document.getElementById("challenge").innerText = "✅ Saved! Tap 🚀 Start for next challenge 😈";
+          }
+        }, 1000);
 
       } catch (err) {
-        alert("Mic access issue or browser not supported");
+        showPopup("🎤 Please allow microphone access to play this game!");
+
+        // 👇 user ko screen pe bhi message dikhao
+        document.getElementById("challenge").innerText =
+          "🎤 Mic permission needed to play!";
+        let btn = document.getElementById("startBtn");
+        btn.innerText = "🚀 Start Challenge";
+        btn.style.animation = "pulse 2s infinite";
+        // UI reset
+        document.getElementById("challenge").style.color = "white";
+        isRecording = false;
+        enablePlayButtons();
+
+        document.getElementById("startBtn").disabled = false;
+        document.getElementById("startBtn").style.pointerEvents = "auto";
+        btn.style.opacity = "1"; // 🔥 ADD THIS
+        btn.style.animation = "pulse 2s infinite";
+        toggleStopButton(false);
         console.error(err);
       }
     }
 
     function stopRecording() {
+
+      progressBar.style.width = "0%";
+
+      if (timer) {
+        clearInterval(timer);
+        timer = null;
+      }
       if (mediaRecorder && mediaRecorder.state !== "inactive") {
         mediaRecorder.stop();
+      }
+      // ✅ to stop mic 
+      if (stream) {
+        stream.getTracks().forEach(track => track.stop());
+      }
+      if (isRecording) {
+        document.getElementById("timer").innerText = "⏹ Stopped!";
+        document.getElementById("challenge").innerText = "✅ Saved early! 🔥";
       }
     }
 
     function displayRecordings() {
       let list = document.getElementById("recordingsList");
-      list.innerHTML = "";
+
+      if (recordings.length === 0) {
+        list.innerHTML = "<p>😅 No recordings yet — Start your first challenge & go viral 🔥</p>";
+        return;
+      }
+      list.innerHTML = `
+<p style="font-size:12px; margin-top:8px; margin-bottom:12px;">
+🔥 Record → Download → Post Reel → Tag & challenge your friends!
+</p>
+`;
 
       recordings.forEach((rec, index) => {
+
         let div = document.createElement("div");
 
+        div.style.background = "rgba(255,255,255,0.1)";
+        div.style.padding = "15px";
+        div.style.margin = "10px";
+        div.style.borderRadius = "12px";
+        div.style.boxShadow = "0 4px 10px rgba(0,0,0,0.2)";
+        div.style.backdropFilter = "blur(10px)";
         div.innerHTML = `
-      <p>${rec.challenge}</p>
-      <button onclick="playSaved(${index})">▶️ Play</button>
-      <hr/>
+      <p style="font-weight:bold;">
+  ${index === 0 ? "🔥 Latest: " : "🎯"} ${rec.challenge}
+</p>
+
+      <button class="playBtn" onclick="playSaved(${index})" style="
+        padding:8px 15px;
+        border:none;
+        border-radius:8px;
+        background:#4CAF50;
+        color:white;
+        margin-right:10px;
+        cursor:pointer;
+      ">▶️ Play</button>
+
+       <button onclick="shareRecording(${index})" style="
+        padding:8px 15px;
+        border:none;
+        border-radius:8px;
+        background:#2196F3;
+        color:white;
+        cursor:pointer;
+       ">📤 Share</button>
+
+       <button onclick="downloadRecording(${index})" style="
+        padding:8px 15px;
+        border:none;
+        border-radius:8px;
+        background:#9C27B0;
+        color:white;
+        cursor:pointer;
+      ">⬇️ Download</button>
+
+      <button onclick="deleteRecording(${index})" style="
+        padding:8px 15px;
+        border:none;
+        border-radius:8px;
+        background:#f44336;
+        color:white;
+        cursor:pointer;
+      ">🗑 Delete</button>
     `;
 
         list.appendChild(div);
       });
+      list.scrollIntoView({ behavior: "smooth", block: "start" });
     }
+
 
     function playSaved(index) {
-      let audio = new Audio(recordings[index].audio);
-      audio.play();
-    }
-  </script>
+      if (isRecording) {
+        showPopup("⛔ Recording in progress!");
+        return;
+      }
 
+      let rec = recordings[index];
+      if (!rec || !rec.audio) {
+        showPopup("⚠️ Audio not available");
+        return;
+      }
+
+      stopCurrentAudio();
+
+      let voice = new Audio(rec.audio);
+      let effect = rec.effect ? preloadedSounds[rec.effect] : null;
+
+      if (effect) effect.currentTime = 0;
+
+      currentAudio = voice;
+      currentEffect = effect || null;
+
+      const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      const source = audioCtx.createMediaElementSource(voice);
+
+      const gainNode = audioCtx.createGain();
+      gainNode.gain.value = 1.5; // 🔥 increase loudness (try 1.2–2)
+
+      source.connect(gainNode);
+      gainNode.connect(audioCtx.destination);
+      if (effect) effect.volume = 0.4;
+
+      disablePlayButtons();
+
+      voice.play().catch(() => {
+        showPopup("⚠️ Tap again to play audio");
+      });
+
+      voice.onplay = () => {
+        let interval = setInterval(showEmojiReaction, 200);
+
+        if (effect) {
+          setTimeout(() => {
+            effect.currentTime = 0;
+            effect.play().catch(() => { });
+          }, 800);
+        }
+
+        voice.onended = () => {
+          clearInterval(interval);
+
+          if (currentEffect) {
+            currentEffect.pause();
+            currentEffect.currentTime = 0;
+          }
+
+          currentAudio = null;
+          currentEffect = null;
+
+          enablePlayButtons();
+        };
+
+        // ✅ correct fix
+        voice.onerror = () => {
+          clearInterval(interval);
+          enablePlayButtons();
+        };
+      };
+    }
+
+    function disablePlayButtons() {
+      document.querySelectorAll(".playBtn").forEach(btn => {
+        btn.disabled = true;
+        btn.style.opacity = 0.5;
+      });
+    }
+
+    function enablePlayButtons() {
+      document.querySelectorAll(".playBtn").forEach(btn => {
+        btn.disabled = false;
+        btn.style.opacity = 1;
+      });
+    }
+
+    function deleteRecording(index) {
+      if (!recordings[index]) return;
+
+      stopCurrentAudio();
+
+      if (recordings[index].audio) {
+        URL.revokeObjectURL(recordings[index].audio);
+      }
+
+      recordings.splice(index, 1);
+      displayRecordings();
+    }
+
+    function getSoundEffect(challenge) {
+
+      let text = challenge.toLowerCase();
+      let effect = soundEffects[Math.floor(Math.random() * soundEffects.length)];
+
+      if (text.includes("angry")) {
+        return "sounds/drum1.mp3";
+      }
+
+      if (text.includes("baby")) {
+        return "sounds/cat1.mp3";
+      }
+
+      if (text.includes("love")) {
+        return "sounds/wow1.mp3";
+      }
+
+      return effect || "";
+    }
+
+    function downloadRecording(index) {
+      let rec = recordings[index];
+
+      if (!rec || !rec.audio) {
+        showPopup("⚠️ File not available");
+        return;
+      }
+
+      let link = document.createElement("a");
+      link.href = rec.audio;
+
+      link.download = rec.challenge
+        .replace(/[^a-z0-9]/gi, "_")
+        .toLowerCase() + ".webm";
+
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    }
+
+    function toggleStopButton(show) {
+      document.getElementById("stopBtn").style.display = show ? "inline-block" : "none";
+    }
+    displayRecordings();
+    document.getElementById("stopBtn").style.display = "none";
+
+    function shareRecording(index) {
+      let file = recordings[index];
+
+      if (!file || !file.audio) {
+        showPopup("⚠️ Recording not found");
+        return;
+      }
+
+      if (navigator.share && typeof navigator.canShare === "function") {
+        fetch(file.audio)
+          .then(res => res.blob())
+          .then(blob => {
+            let fileObj = new File([blob], "challenge.webm", { type: blob.type });
+
+            if (navigator.canShare({ files: [fileObj] })) {
+              navigator.share({
+                title: "30 Sec Challenge 🔥",
+                text: file.challenge,
+                files: [fileObj]
+              });
+            } else {
+              fallbackShare(file, index);
+            }
+          })
+          .catch(() => fallbackShare(file, index));
+      } else {
+        fallbackShare(file, index);
+      }
+    }
+
+    function showEmojiReaction() {
+      const emoji = emojis[Math.floor(Math.random() * emojis.length)];
+
+      const el = document.createElement("div");
+      el.innerText = emoji;
+
+      el.style.position = "fixed";
+      el.style.left = Math.random() * 80 + "%";
+      el.style.top = "60%";
+      el.style.fontSize = (20 + Math.random() * 30) + "px";
+      el.style.opacity = "1";
+      el.style.transition = "all 1s ease-out";
+      el.style.pointerEvents = "none";
+
+      document.body.appendChild(el);
+
+      setTimeout(() => {
+        el.style.top = "20%";
+        el.style.opacity = "0";
+      }, 50);
+
+      setTimeout(() => {
+        document.body.removeChild(el);
+      }, 1000);
+    }
+
+    function showPopup(message) {
+      const popup = document.getElementById("popup");
+      popup.innerText = message;
+      popup.style.display = "block";
+
+      clearTimeout(popupTimer);
+
+      popupTimer = setTimeout(() => {
+        popup.style.display = "none";
+      }, 2500);
+    }
+
+    function fallbackShare(file, index) {
+      let shareText = `🔥 I scored in 30 Sec Challenge!
+🎤 ${file.challenge}
+
+👉 Try it now!`;
+
+      navigator.clipboard.writeText(shareText)
+        .then(() => {
+          showPopup("📋 Copied + Audio downloaded. Share it 😈");
+        })
+        .catch(() => {
+          showPopup("⚠️ Copy failed. Please copy manually.");
+        });
+
+      downloadRecording(index);
+    }
+
+    function stopCurrentAudio() {
+      if (currentAudio) {
+        currentAudio.pause();
+        currentAudio.currentTime = 0;
+        currentAudio = null;
+      }
+
+      if (currentEffect) {
+        currentEffect.pause();
+        currentEffect.currentTime = 0;
+        currentEffect = null;
+      }
+    }
+
+    window.addEventListener("beforeunload", () => {
+      if (stream) {
+        stream.getTracks().forEach(track => track.stop());
+      }
+      recordings.forEach(rec => {
+        if (rec.audio) {
+          URL.revokeObjectURL(rec.audio);
+        }
+      });
+    });
+  </script>
 </body>
 
 </html>
