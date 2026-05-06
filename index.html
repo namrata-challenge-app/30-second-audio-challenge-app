@@ -200,6 +200,8 @@
     let recentChallenges = [];
     let popupTimer;
     let preloadedSounds = {};
+    let bgMusic = null;
+    let audioCtx = null;
     soundEffects.forEach(src => {
       preloadedSounds[src] = new Audio(src);
     });
@@ -211,6 +213,7 @@
     const recordingsListEl = document.getElementById("recordingsList");
     const progressBar = document.getElementById("progressBar");
     const emojis = ["😂", "🔥", "😱", "👏", "🤣", "😎"];
+
 
     function startChallenge() {
 
@@ -274,15 +277,23 @@
 
     async function startRecording() {
 
+      if (audioCtx) {
+        audioCtx.close();
+        audioCtx = null;
+      }
+
       if (timer !== null) {
         clearInterval(timer);
       }
       if (stream) {
         stream.getTracks().forEach(track => track.stop());
       }
+
       document.getElementById("challenge").style.color = "#FFD700";
       document.getElementById("challenge").innerText = currentChallengeText + " 🎤";
+
       try {
+
         stream = await navigator.mediaDevices.getUserMedia({
           audio: {
             echoCancellation: true,
@@ -291,7 +302,60 @@
           }
         });
 
-        mediaRecorder = new MediaRecorder(stream);
+        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+
+        const micSource = audioCtx.createMediaStreamSource(stream);
+        const destination = audioCtx.createMediaStreamDestination();
+
+        // 🔊 MIC BOOST
+        const gainNode = audioCtx.createGain();
+        gainNode.gain.value = 1.5;
+
+        // 🎤 SIMPLE REVERB (ECHO FEEL)
+        const delay = audioCtx.createDelay();
+        delay.delayTime.value = 0.25;
+
+        const feedback = audioCtx.createGain();
+        feedback.gain.value = 0.3;
+
+        delay.connect(feedback);
+        feedback.connect(delay);
+
+        // connect mic → gain → delay → destination
+        micSource.connect(gainNode);
+        gainNode.connect(destination);
+        gainNode.connect(delay);
+        delay.connect(destination);
+
+        // 🎯 SOUND EFFECT
+        let randomEffect = getSoundEffect(currentChallengeText);
+
+        if (randomEffect) {
+          currentEffect = new Audio(randomEffect);
+
+          const effectSource = audioCtx.createMediaElementSource(currentEffect);
+          effectSource.connect(destination);
+
+          setTimeout(() => {
+            currentEffect.play().catch(() => { });
+          }, 800);
+        }
+
+        // 🎵 BACKGROUND MUSIC
+        bgMusic = new Audio("sounds/bg.mp3");
+        bgMusic.loop = true;
+        bgMusic.volume = 0.15;
+
+        const bgSource = audioCtx.createMediaElementSource(bgMusic);
+        bgSource.connect(destination);
+
+        bgMusic.play().catch(() => {
+          console.log("BG music autoplay blocked");
+        });
+
+        // 👉 FINAL RECORDING STREAM
+        mediaRecorder = new MediaRecorder(destination.stream);
+
         audioChunks = [];
 
         mediaRecorder.ondataavailable = event => {
@@ -303,6 +367,7 @@
         mediaRecorder.onstop = () => {
 
           document.getElementById("stopBtn").style.display = "none";
+
           let btn = document.getElementById("startBtn");
           btn.style.opacity = "1";
           btn.disabled = false;
@@ -310,57 +375,44 @@
           btn.innerText = "🚀 Start Challenge";
           btn.style.animation = "pulse 2s infinite";
 
-          document.getElementById("challenge").style.color = "white";
-
           isRecording = false;
           enablePlayButtons();
 
           const audioBlob = new Blob(audioChunks, { type: "audio/webm" });
           const url = URL.createObjectURL(audioBlob);
 
-          let randomEffect = getSoundEffect(currentChallengeText);
-
-          // ✅ Memory cleanup (already correct)
-          if (recordings.length > 19) {
-            if (recordings[0] && recordings[0].audio) {
-              URL.revokeObjectURL(recordings[0].audio);
-            }
-            recordings.shift();
-          }
-
+          // ✅ SAVE WITH EFFECT
           recordings.push({
             challenge: currentChallengeText,
             audio: url,
-            effect: randomEffect
+            effect: null // ❌ effect ab alag se play nahi hoga
           });
 
           displayRecordings();
-
-          challengeEl.style.transform = "scale(1.1)";
-          setTimeout(() => {
-            challengeEl.style.transform = "scale(1)";
-          }, 200);
 
           setTimeout(() => {
             playSaved(recordings.length - 1);
           }, 400);
 
+          if (currentEffect) {
+            currentEffect.pause();
+            currentEffect = null;
+          }
         };
-
-        let challengeMsg = `🔥 I scored ${score} in 30 Sec Challenge!\n\n🎤 Challenge: "${currentChallengeText}"\n\n😈 Can you beat me?\n👉 Play now & challenge 3 friends!`;
-        setTimeout(() => {
-          showPopup(challengeMsg);
-        }, 800);
 
         mediaRecorder.start();
         toggleStopButton(true);
+
         beepSound.currentTime = 0;
         beepSound.play().catch(() => { });
+
         isRecording = true;
+
         let timeLeft = 30;
         timerEl.innerText = timeLeft;
 
         timer = setInterval(() => {
+
           timeLeft--;
 
           let percent = ((30 - timeLeft) / 30) * 100;
@@ -368,59 +420,40 @@
 
           timerEl.innerText = timeLeft;
 
-          if (timeLeft === 29) {
-            document.getElementById("challenge").style.transform = "scale(1.1)";
-          }
-          if (timeLeft === 28) {
-            document.getElementById("challenge").style.transform = "scale(1)";
-          }
-
           if (timeLeft <= 5) {
             document.getElementById("timer").style.color = "red";
-
-            // 📳 vibration (mobile only)
-            if (navigator.vibrate) {
-              navigator.vibrate(200);
-            }
           }
+
           if (timeLeft <= 3 && timeLeft > 0) {
             beepSound.currentTime = 0;
-            beepSound.volume = 0.6;
             beepSound.play().catch(() => { });
           }
+
           if (timeLeft <= 0) {
             score++;
             document.getElementById("score").innerText = "Score: " + score;
+
             stopRecording();
+
             document.getElementById("timer").innerText = "⏰ Time's up!";
-            document.getElementById("challenge").style.transform = "scale(1.1)";
-            setTimeout(() => {
-              document.getElementById("challenge").style.transform = "scale(1)";
-            }, 200);
-            document.getElementById("timer").style.color = "white";
-            document.getElementById("challenge").innerText = "✅ Saved! Tap 🚀 Start for next challenge 😈";
+            document.getElementById("challenge").innerText =
+              "✅ Saved! Tap 🚀 Start for next challenge 😈";
           }
+
         }, 1000);
 
       } catch (err) {
-        showPopup("🎤 Please allow microphone access to play this game!");
 
-        // 👇 user ko screen pe bhi message dikhao
-        document.getElementById("challenge").innerText =
-          "🎤 Mic permission needed to play!";
-        let btn = document.getElementById("startBtn");
-        btn.innerText = "🚀 Start Challenge";
-        btn.style.animation = "pulse 2s infinite";
-        // UI reset
-        document.getElementById("challenge").style.color = "white";
+        showPopup("🎤 Please allow microphone access!");
+
         isRecording = false;
         enablePlayButtons();
 
         document.getElementById("startBtn").disabled = false;
         document.getElementById("startBtn").style.pointerEvents = "auto";
-        btn.style.opacity = "1"; // 🔥 ADD THIS
-        btn.style.animation = "pulse 2s infinite";
+
         toggleStopButton(false);
+
         console.error(err);
       }
     }
@@ -433,16 +466,32 @@
         clearInterval(timer);
         timer = null;
       }
+
       if (mediaRecorder && mediaRecorder.state !== "inactive") {
         mediaRecorder.stop();
       }
-      // ✅ to stop mic 
+
+      // 🎤 stop mic
       if (stream) {
         stream.getTracks().forEach(track => track.stop());
       }
+
       if (isRecording) {
         document.getElementById("timer").innerText = "⏹ Stopped!";
         document.getElementById("challenge").innerText = "✅ Saved early! 🔥";
+      }
+
+      // 🎵 stop background music
+      if (bgMusic) {
+        bgMusic.pause();
+        bgMusic.currentTime = 0;
+        bgMusic = null;
+      }
+
+      // 🔇 close audio context (VERY IMPORTANT)
+      if (audioCtx) {
+        audioCtx.close();
+        audioCtx = null;
       }
     }
 
@@ -533,7 +582,7 @@
       stopCurrentAudio();
 
       let voice = new Audio(rec.audio);
-      let effect = rec.effect ? preloadedSounds[rec.effect] : null;
+      let effect = null;
 
       if (effect) effect.currentTime = 0;
 
