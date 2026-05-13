@@ -1,0 +1,1194 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>30 Sec Challenge Game</title>
+
+    <style>
+        button:hover {
+            transform: scale(1.05);
+            transition: 0.2s;
+        }
+
+        #challenge {
+            transition: all 0.2s ease;
+        }
+
+        @keyframes pulse {
+            0% {
+                transform: scale(1);
+                box-shadow: 0 0 0 0 rgba(255, 105, 180, 0.7);
+            }
+
+            70% {
+                transform: scale(1.08);
+                box-shadow: 0 0 0 15px rgba(255, 105, 180, 0);
+            }
+
+            100% {
+                transform: scale(1);
+                box-shadow: 0 0 0 0 rgba(255, 105, 180, 0);
+            }
+        }
+
+        #startBtn {
+            animation: pulse 2s infinite;
+        }
+
+        button:active {
+            transform: scale(0.95);
+        }
+
+        @keyframes bounce {
+
+            0%,
+            100% {
+                transform: translateY(0);
+            }
+
+            50% {
+                transform: translateY(-10px);
+            }
+        }
+    </style>
+    <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+</head>
+
+<body style="
+  margin:0;
+  text-align:center;
+  font-family:Arial;
+  background:linear-gradient(to right, #667eea, #764ba2);
+  color:white;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  height:100vh;
+">
+    <div id="popup" style="
+  position:fixed;
+  bottom:20px;
+  left:50%;
+  transform:translateX(-50%);
+  background:rgba(0,0,0,0.8);
+  color:white;
+  padding:15px 20px;
+  border-radius:12px;
+  font-size:14px;
+  max-width:90%;
+  display:none;
+  z-index:1000;
+  text-align:center;
+"></div>
+    <p style="font-size:13px; opacity:0.8;">
+        🎥 Idea: Apna reaction + recording add karo 😄
+    </p>
+    <h1 style="font-size:32px; letter-spacing:1px;">
+        🎯 30 Sec Challenge 🔥
+    </h1>
+
+    <h3 id="score">Score: 0</h3>
+
+    <div style="margin-top:20px;">
+
+        <p style="
+    font-size:14px;
+    background:rgba(255,0,0,0.2);
+    padding:8px 12px;
+    border-radius:8px;
+    display:inline-block;
+    margin-bottom:10px;
+  ">
+            ⚠️ Best experienced on Android/Desktop
+        </p>
+
+        <br />
+        <br />
+
+        <select id="characterSelect" style="
+  padding:12px 18px;
+  border:none;
+  border-radius:12px;
+  font-size:16px;
+  margin-bottom:15px;
+  background:white;
+  color:#333;
+  font-weight:bold;
+">
+            <option value="random">🎲 Random Cartoon</option>
+            <option value="motu">🍔 Motu Patlu</option>
+            <option value="bheem">💪 Chhota Bheem</option>
+            <option value="doraemon">🤖 Doraemon</option>
+            <option value="shinchan">😜 Shinchan</option>
+            <option value="pikachu">⚡ Pikachu</option>
+            <option value="tomjerry">🐭 Tom & Jerry</option>
+            <option value="mickey">🐭 Mickey Mouse</option>
+        </select>
+        <button id="startBtn" onclick="startChallenge()" style="
+  padding:18px 35px;
+  font-size:20px;
+  background:linear-gradient(45deg, #ff6a00, #ee0979);
+  border:none;
+  border-radius:30px;
+  color:white;
+  cursor:pointer;
+  box-shadow:0 4px 15px rgba(0,0,0,0.3);
+">
+            🚀 Start Challenge
+        </button>
+
+        <button onclick="location.reload()" style="
+  margin-top:20px;
+  padding:10px 20px;
+  border:none;
+  border-radius:10px;
+  background:#ff9800;
+  color:white;
+">🔄 Restart</button>
+
+        <button id="stopBtn" onclick="stopRecording()" style="
+  margin-top:10px;
+  padding:10px 20px;
+  border:none;
+  border-radius:10px;
+  background:#f44336;
+  color:white;
+  cursor:pointer;
+  display:none;
+">⏹ Stop</button>
+
+    </div>
+
+    <div id="reelArea" style="
+width:100%;
+max-width:1080px;
+height:1920px;
+display:flex;
+flex-direction:column;
+align-items:center;
+justify-content:center;
+padding:40px;
+box-sizing:border-box;
+background:linear-gradient(to bottom, #667eea, #764ba2);
+">
+
+        <video id="cartoonVideo" autoplay muted loop playsinline src="videos/funny.mp4" style="
+ width:420px;
+ height:700px;
+ object-fit:contain;
+ border-radius:20px;
+ margin-top:15px;
+ animation:bounce 2s infinite;
+ background:transparent;
+ box-shadow:0 4px 15px rgba(0,0,0,0.4);
+">
+        </video>
+
+        <h2 id="challenge" style="
+margin-top:15px;
+font-size:42px;
+font-weight:bold;
+line-height:1.2;
+color:#FFD700;
+text-shadow:3px 3px 8px rgba(0,0,0,0.6);
+padding:0 20px;
+"></h2>
+
+        <h3 id="timer" style="
+font-size:48px;
+font-weight:bold;
+margin-top:25px;
+color:white;
+text-shadow:2px 2px 8px rgba(0,0,0,0.5);
+"></h3>
+
+        <div style="
+  width:80%;
+  max-width:300px;
+  height:8px;
+  background:rgba(255,255,255,0.2);
+  border-radius:10px;
+  overflow:hidden;
+  margin-top:10px;
+">
+            <div id="progressBar" style="
+    width:0%;
+    height:100%;
+    background:#ff4d4d;
+    transition: width 1s linear;
+  "></div>
+        </div>
+
+    </div>
+
+    <h3 style="margin-top:30px;">📂 Recording List</h3>
+    <div id="recordingsList"></div>
+
+    <script>
+
+        let cartoonChallenges = {
+
+            random: [
+                {
+                    text: "Say hello like a cartoon 😂",
+                    video: "videos/lady1.mp4"
+                },
+                {
+                    text: "Talk like a funny superhero 🦸",
+                    video: "videos/duck1.mp4"
+                },
+                {
+                    text: "Laugh like a villain 😈",
+                    video: "videos/cat1.mp4"
+                }
+            ],
+
+            motu: [
+                {
+                    text: "Talk while pretending to eat samosa 🍔",
+                    video: "videos/motu1.mp4"
+                },
+                {
+                    text: "Act super hungry 😂",
+                    video: "videos/motu2.mp4"
+                },
+                {
+                    text: "Say 'Patluuuu!' dramatically 😆",
+                    video: "videos/motu3.mp4"
+                }
+            ],
+
+            bheem: [
+                {
+                    text: "Roar like a strong hero 💪",
+                    video: "videos/bheem1.mp4"
+                },
+                {
+                    text: "Challenge your friend to a race 🏃",
+                    video: "videos/bheem1.mp4"
+                },
+                {
+                    text: "Talk like a village hero 😎",
+                    video: "videos/bheem1.mp4"
+                }
+            ],
+
+            doraemon: [
+                {
+                    text: "Talk like a robot cat 🤖",
+                    video: "videos/doraemon1.mp4"
+                },
+                {
+                    text: "Invent a funny gadget 😂",
+                    video: "videos/doraemon2.mp4"
+                },
+                {
+                    text: "Help Nobita in funny way 😄",
+                    video: "videos/doraemon3.mp4"
+                }
+            ],
+
+            shinchan: [
+                {
+                    text: "Dance like a naughty kid 😜",
+                    video: "videos/shinchan1.mp4"
+                },
+                {
+                    text: "Talk in funny sleepy voice 😂",
+                    video: "videos/shinchan2.mp4"
+                },
+                {
+                    text: "Do silly acting 🤣",
+                    video: "videos/shinchan3.mp4"
+                }
+            ],
+
+            pikachu: [
+                {
+                    text: "Say everything in Pikachu voice ⚡",
+                    video: "videos/pikachu1.mp4"
+                },
+                {
+                    text: "Pretend electric shock attack ⚡",
+                    video: "videos/pikachu2.mp4"
+                },
+                {
+                    text: "Make cute cartoon sounds 😄",
+                    video: "videos/pikachu3.mp4"
+                }
+            ],
+
+            tomjerry: [
+                {
+                    text: "Act like cat chasing mouse 🐭",
+                    video: "videos/tomjerry1.mp4"
+                },
+                {
+                    text: "Make funny running sounds 😂",
+                    video: "videos/tomjerry2.mp4"
+                },
+                {
+                    text: "Pretend cartoon fight 🤣",
+                    video: "videos/tomjerry3.mp4"
+                }
+            ],
+
+            mickey: [
+                {
+                    text: "Welcome everyone like Mickey 🐭",
+                    video: "videos/mickey1.mp4"
+                },
+                {
+                    text: "Talk in cheerful cartoon voice 😄",
+                    video: "videos/mickey2.mp4"
+                },
+                {
+                    text: "Laugh like classic cartoon 😂",
+                    video: "videos/mickey3.mp4"
+                }
+
+            ]
+        };
+
+        let soundEffects = [
+            "sounds/laugh1.mp3",
+            "sounds/laugh2.mp3",
+            "sounds/laugh3.mp3",
+            "sounds/laugh4.mp3",
+            "sounds/laugh5.mp3",
+            "sounds/clap1.mp3",
+            "sounds/clap2.mp3",
+            "sounds/clap3.mp3",
+            "sounds/wow1.mp3",
+            "sounds/wow2.mp3",
+            "sounds/drum1.mp3",
+            "sounds/drum2.mp3",
+            "sounds/drum3.mp3",
+            "sounds/drum4.mp3",
+            "sounds/cat1.mp3",
+            "sounds/cat2.mp3",
+            "sounds/cat3.mp3"
+        ];
+
+        let mediaRecorder;
+        let audioChunks = [];
+        let recordings = [];
+        let currentAudio = null;
+        let isRecording = false;
+        let timer = null;
+        let score = 0;
+        let stream;
+        let currentEffect = null;
+        let beepSound = new Audio("sounds/beep.mp3");
+        let currentChallengeText = "";
+        let recentChallenges = [];
+        let popupTimer;
+        let preloadedSounds = {};
+        let bgMusic = null;
+        let audioCtx = null;
+        let reelRecorder;
+        let reelChunks = [];
+        let reelStream = null;
+
+        let reelCanvas = document.createElement("canvas");
+
+        let reelCtx = reelCanvas.getContext("2d");
+
+        let reelInterval = null;
+        soundEffects.forEach(src => {
+            preloadedSounds[src] = new Audio(src);
+        });
+        const startBtn = document.getElementById("startBtn");
+        const stopBtn = document.getElementById("stopBtn");
+        const timerEl = document.getElementById("timer");
+        const challengeEl = document.getElementById("challenge");
+        const scoreEl = document.getElementById("score");
+        const recordingsListEl = document.getElementById("recordingsList");
+        const progressBar = document.getElementById("progressBar");
+        const emojis = ["😂", "🔥", "😱", "👏", "🤣", "😎"];
+        window.addEventListener("load", () => {
+
+            let introVideo = document.getElementById("cartoonVideo");
+
+            introVideo.play().catch(() => {
+                console.log("Autoplay blocked");
+            });
+
+        });
+
+
+        function startChallenge() {
+
+            progressBar.style.width = "0%";
+
+            if (isRecording) return;
+
+            startBtn.style.opacity = "1";
+
+            document.getElementById("startBtn").innerText =
+                "⏳ Starting...";
+
+            document.getElementById("startBtn").style.pointerEvents =
+                "none";
+
+            document.getElementById("startBtn").style.animation =
+                "none";
+
+            // reset timer
+            document.getElementById("timer").style.color =
+                "white";
+
+            document.getElementById("timer").innerText = "";
+
+            // stop old audio
+            if (currentAudio) {
+                currentAudio.pause();
+                currentAudio.src = "";
+                currentAudio = null;
+            }
+
+            document.getElementById("startBtn").disabled = true;
+
+            disablePlayButtons();
+
+            let isIphone =
+                /iPhone|iPad|iPod/i.test(navigator.userAgent);
+
+            if (isIphone) {
+
+                showPopup(
+                    "⚠️ This game works best on Android/Desktop 😊"
+                );
+
+                let btn = document.getElementById("startBtn");
+
+                btn.style.opacity = "0.7";
+                btn.disabled = false;
+                btn.style.pointerEvents = "auto";
+                btn.innerText = "🚀 Start Challenge";
+                btn.style.animation = "pulse 2s infinite";
+
+                return;
+            }
+
+            // 🎯 Selected cartoon
+            let selectedCharacter =
+                document.getElementById("characterSelect").value;
+
+            // 🎯 Challenges list
+            let challenges =
+                cartoonChallenges[selectedCharacter]
+                || cartoonChallenges["random"];
+
+            let randomChallenge;
+
+            // reset if all used
+            if (recentChallenges.length === challenges.length) {
+                recentChallenges = [];
+            }
+
+            do {
+
+                randomChallenge =
+                    challenges[Math.floor(
+                        Math.random() * challenges.length
+                    )];
+
+            }
+
+            while (
+                recentChallenges.includes(
+                    randomChallenge.text
+                )
+            );
+
+            recentChallenges.push(
+                randomChallenge.text
+            );
+
+            // keep last 5 only
+            if (recentChallenges.length > 5) {
+                recentChallenges.shift();
+            }
+
+            // 🎯 Save challenge text
+            currentChallengeText =
+                randomChallenge.text;
+
+            // 🎯 Show challenge
+            challengeEl.innerText =
+                randomChallenge.text;
+
+            let vid = document.getElementById("cartoonVideo");
+
+            vid.src = randomChallenge.video;
+
+            vid.play().catch(() => { });
+
+            // 🎯 Animation
+            challengeEl.style.transform = "scale(1.1)";
+
+            setTimeout(() => {
+
+                challengeEl.style.transform = "scale(1)";
+
+            }, 200);
+
+            document.getElementById("challenge").style.color =
+                "white";
+
+            startRecording();
+        }
+
+        async function startRecording() {
+
+            if (audioCtx) {
+                audioCtx.close();
+                audioCtx = null;
+            }
+
+            if (timer !== null) {
+                clearInterval(timer);
+            }
+            if (stream) {
+                stream.getTracks().forEach(track => track.stop());
+            }
+
+            document.getElementById("challenge").style.color = "#FFD700";
+            document.getElementById("challenge").innerText = currentChallengeText + " 🎤";
+
+            try {
+
+                stream = await navigator.mediaDevices.getUserMedia({
+                    audio: {
+                        echoCancellation: true,
+                        noiseSuppression: true,
+                        autoGainControl: true
+                    }
+                });
+
+                audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+
+                const micSource = audioCtx.createMediaStreamSource(stream);
+                const destination = audioCtx.createMediaStreamDestination();
+
+                // 🔊 MIC BOOST
+                const gainNode = audioCtx.createGain();
+                gainNode.gain.value = 1.5;
+
+                // 🎤 SIMPLE REVERB (ECHO FEEL)
+                const delay = audioCtx.createDelay();
+                delay.delayTime.value = 0.25;
+
+                const feedback = audioCtx.createGain();
+                feedback.gain.value = 0.3;
+
+                delay.connect(feedback);
+                feedback.connect(delay);
+
+                // connect mic → gain → delay → destination
+                micSource.connect(gainNode);
+                gainNode.connect(destination);
+                gainNode.connect(delay);
+                delay.connect(destination);
+
+                // 🎯 SOUND EFFECT
+                let randomEffect = getSoundEffect(currentChallengeText);
+
+                if (randomEffect) {
+                    currentEffect = new Audio(randomEffect);
+
+                    const effectSource = audioCtx.createMediaElementSource(currentEffect);
+                    effectSource.connect(destination);
+
+                    setTimeout(() => {
+                        currentEffect.play().catch(() => { });
+                    }, 800);
+                }
+
+                // 🎵 BACKGROUND MUSIC
+                bgMusic = new Audio("sounds/bg.mp3");
+                bgMusic.loop = true;
+                bgMusic.volume = 0.15;
+
+                const bgSource = audioCtx.createMediaElementSource(bgMusic);
+                bgSource.connect(destination);
+
+                bgMusic.play().catch(() => {
+                    console.log("BG music autoplay blocked");
+                });
+
+                // 👉 FINAL RECORDING STREAM
+                mediaRecorder = new MediaRecorder(destination.stream);
+
+                audioChunks = [];
+
+                mediaRecorder.ondataavailable = event => {
+                    if (event.data.size > 0) {
+                        audioChunks.push(event.data);
+                    }
+                };
+
+                mediaRecorder.onstop = () => {
+
+                    document.getElementById("stopBtn").style.display = "none";
+
+                    let btn = document.getElementById("startBtn");
+                    btn.style.opacity = "1";
+                    btn.disabled = false;
+                    btn.style.pointerEvents = "auto";
+                    btn.innerText = "🚀 Start Challenge";
+                    btn.style.animation = "pulse 2s infinite";
+
+                    isRecording = false;
+                    enablePlayButtons();
+
+                    const audioBlob = new Blob(audioChunks, { type: "audio/webm" });
+                    const url = URL.createObjectURL(audioBlob);
+
+                    // ✅ SAVE WITH EFFECT
+                    recordings.push({
+                        challenge: currentChallengeText,
+                        audio: url,
+                        effect: randomEffect
+                    });
+
+                    displayRecordings();
+
+                    setTimeout(() => {
+                        playSaved(recordings.length - 1);
+                    }, 400);
+
+                    if (currentEffect) {
+                        currentEffect.pause();
+                        currentEffect = null;
+                    }
+                };
+
+                mediaRecorder.start();
+                startReelRecording(destination.stream);
+                toggleStopButton(true);
+
+                beepSound.currentTime = 0;
+                beepSound.play().catch(() => { });
+
+                isRecording = true;
+
+                let timeLeft = 30;
+                timerEl.innerText = timeLeft;
+
+                timer = setInterval(() => {
+
+                    timeLeft--;
+
+                    let percent = ((30 - timeLeft) / 30) * 100;
+                    progressBar.style.width = percent + "%";
+
+                    timerEl.innerText = timeLeft;
+
+                    if (timeLeft <= 5) {
+                        document.getElementById("timer").style.color = "red";
+                    }
+
+                    if (timeLeft <= 3 && timeLeft > 0) {
+                        beepSound.currentTime = 0;
+                        beepSound.play().catch(() => { });
+                    }
+
+                    if (timeLeft <= 0) {
+                        score++;
+                        document.getElementById("score").innerText = "Score: " + score;
+
+                        stopRecording();
+
+                        document.getElementById("timer").innerText = "⏰ Time's up!";
+                        document.getElementById("challenge").innerText =
+                            "✅ Saved! Tap 🚀 Start for next challenge 😈";
+                    }
+
+                }, 1000);
+
+            } catch (err) {
+
+                showPopup("🎤 Please allow microphone access!");
+
+                isRecording = false;
+                enablePlayButtons();
+
+                document.getElementById("startBtn").disabled = false;
+                document.getElementById("startBtn").style.pointerEvents = "auto";
+
+                toggleStopButton(false);
+
+                console.error(err);
+            }
+        }
+
+        function stopRecording() {
+
+            progressBar.style.width = "0%";
+
+            if (timer) {
+                clearInterval(timer);
+                timer = null;
+            }
+
+            if (mediaRecorder && mediaRecorder.state !== "inactive") {
+                mediaRecorder.stop();
+                if (reelRecorder && reelRecorder.state !== "inactive") {
+                    reelRecorder.stop();
+                }
+            }
+
+            // 🎤 stop mic
+            if (stream) {
+                stream.getTracks().forEach(track => track.stop());
+            }
+
+            if (isRecording) {
+                document.getElementById("timer").innerText = "⏹ Stopped!";
+                document.getElementById("challenge").innerText = "✅ Saved early! 🔥";
+            }
+
+            // 🎵 stop background music
+            if (bgMusic) {
+                bgMusic.pause();
+                bgMusic.currentTime = 0;
+                bgMusic = null;
+            }
+
+            // 🔇 close audio context (VERY IMPORTANT)
+            if (audioCtx) {
+                audioCtx.close();
+                audioCtx = null;
+            }
+        }
+
+        function displayRecordings() {
+            let list = document.getElementById("recordingsList");
+
+            if (recordings.length === 0) {
+                list.innerHTML = "<p>😅 No recordings yet — Start your first challenge & go viral 🔥</p>";
+                return;
+            }
+            list.innerHTML = `
+<p style="font-size:12px; margin-top:8px; margin-bottom:12px;">
+🔥 Record → Download → Post Reel → Tag & challenge your friends!
+</p>
+`;
+
+            recordings.forEach((rec, index) => {
+
+                let div = document.createElement("div");
+
+                div.style.background = "rgba(255,255,255,0.1)";
+                div.style.padding = "15px";
+                div.style.margin = "10px";
+                div.style.borderRadius = "12px";
+                div.style.boxShadow = "0 4px 10px rgba(0,0,0,0.2)";
+                div.style.backdropFilter = "blur(10px)";
+                div.innerHTML = `
+      <p style="font-weight:bold;">
+  ${index === 0 ? "🔥 Latest: " : "🎯"} ${rec.challenge}
+</p>
+
+      <button class="playBtn" onclick="playSaved(${index})" style="
+        padding:8px 15px;
+        border:none;
+        border-radius:8px;
+        background:#4CAF50;
+        color:white;
+        margin-right:10px;
+        cursor:pointer;
+      ">▶️ Play</button>
+
+       <button onclick="shareRecording(${index})" style="
+        padding:8px 15px;
+        border:none;
+        border-radius:8px;
+        background:#2196F3;
+        color:white;
+        cursor:pointer;
+       ">📤 Share</button>
+
+      <button onclick="deleteRecording(${index})" style="
+        padding:8px 15px;
+        border:none;
+        border-radius:8px;
+        background:#f44336;
+        color:white;
+        cursor:pointer;
+      ">🗑 Delete</button>
+
+          <button onclick="downloadVideo(${index})" style="
+padding:8px 15px;
+border:none;
+border-radius:8px;
+background:#673AB7;
+color:white;
+cursor:pointer;
+margin-left:10px;
+">
+🎬 Download
+</button>
+    `;
+
+                list.appendChild(div);
+            });
+            list.scrollIntoView({ behavior: "smooth", block: "start" });
+        }
+
+
+        function playSaved(index) {
+            if (isRecording) {
+                showPopup("⛔ Recording in progress!");
+                return;
+            }
+
+            let rec = recordings[index];
+            if (!rec || !rec.audio) {
+                showPopup("⚠️ Audio not available");
+                return;
+            }
+
+            stopCurrentAudio();
+
+            let voice = new Audio(rec.audio);
+            let effect = rec.effect ? new Audio(rec.effect) : null;
+
+            if (effect) effect.currentTime = 0;
+
+            currentAudio = voice;
+            currentEffect = effect || null;
+
+            const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            const source = audioCtx.createMediaElementSource(voice);
+
+            const gainNode = audioCtx.createGain();
+            gainNode.gain.value = 1.5; // 🔥 increase loudness (try 1.2–2)
+
+            source.connect(gainNode);
+            gainNode.connect(audioCtx.destination);
+            if (effect) effect.volume = 0.4;
+
+            disablePlayButtons();
+
+            voice.play().catch(() => {
+                showPopup("⚠️ Tap again to play audio");
+            });
+
+            voice.onplay = () => {
+                let interval = setInterval(showEmojiReaction, 200);
+
+                if (effect) {
+                    setTimeout(() => {
+                        effect.currentTime = 0;
+                        effect.play().catch(() => { });
+                    }, 800);
+                }
+
+                voice.onended = () => {
+                    clearInterval(interval);
+
+                    if (currentEffect) {
+                        currentEffect.pause();
+                        currentEffect.currentTime = 0;
+                    }
+
+                    currentAudio = null;
+                    currentEffect = null;
+
+                    enablePlayButtons();
+                };
+
+                // ✅ correct fix
+                voice.onerror = () => {
+                    clearInterval(interval);
+                    enablePlayButtons();
+                };
+            };
+        }
+
+        function disablePlayButtons() {
+            document.querySelectorAll(".playBtn").forEach(btn => {
+                btn.disabled = true;
+                btn.style.opacity = 0.5;
+            });
+        }
+
+        function enablePlayButtons() {
+            document.querySelectorAll(".playBtn").forEach(btn => {
+                btn.disabled = false;
+                btn.style.opacity = 1;
+            });
+        }
+
+        function deleteRecording(index) {
+            if (!recordings[index]) return;
+
+            stopCurrentAudio();
+
+            if (recordings[index].audio) {
+                URL.revokeObjectURL(recordings[index].audio);
+            }
+
+            recordings.splice(index, 1);
+            displayRecordings();
+        }
+
+        function getSoundEffect(challenge) {
+
+            let text = challenge.toLowerCase();
+            let effect = soundEffects[Math.floor(Math.random() * soundEffects.length)];
+
+            if (text.includes("angry")) {
+                return "sounds/drum1.mp3";
+            }
+
+            if (text.includes("baby")) {
+                return "sounds/cat1.mp3";
+            }
+
+            if (text.includes("love")) {
+                return "sounds/wow1.mp3";
+            }
+
+            return effect || "";
+        }
+
+        function downloadRecording(index) {
+            let rec = recordings[index];
+
+            if (!rec || !rec.audio) {
+                showPopup("⚠️ File not available");
+                return;
+            }
+
+            let link = document.createElement("a");
+            link.href = rec.audio;
+
+            link.download = rec.challenge
+                .replace(/[^a-z0-9]/gi, "_")
+                .toLowerCase() + ".webm";
+
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+        function downloadVideo(index) {
+
+            let rec = recordings[index];
+
+            if (!rec || !rec.video) {
+                showPopup("⚠️ Reel not ready yet");
+                return;
+            }
+
+            let link = document.createElement("a");
+
+            link.href = rec.video;
+
+            link.download = "funny-reel.webm";
+
+            document.body.appendChild(link);
+
+            link.click();
+
+            document.body.removeChild(link);
+        }
+
+        function toggleStopButton(show) {
+            document.getElementById("stopBtn").style.display = show ? "inline-block" : "none";
+        }
+        displayRecordings();
+        document.getElementById("stopBtn").style.display = "none";
+
+        function shareRecording(index) {
+            let file = recordings[index];
+
+            if (!file || !file.audio) {
+                showPopup("⚠️ Recording not found");
+                return;
+            }
+
+            if (navigator.share && typeof navigator.canShare === "function") {
+                fetch(file.audio)
+                    .then(res => res.blob())
+                    .then(blob => {
+                        let fileObj = new File([blob], "challenge.webm", { type: blob.type });
+
+                        if (navigator.canShare({ files: [fileObj] })) {
+                            navigator.share({
+                                title: "30 Sec Challenge 🔥",
+                                text: file.challenge,
+                                files: [fileObj]
+                            });
+                        } else {
+                            fallbackShare(file, index);
+                        }
+                    })
+                    .catch(() => fallbackShare(file, index));
+            } else {
+                fallbackShare(file, index);
+            }
+        }
+
+        function showEmojiReaction() {
+            const emoji = emojis[Math.floor(Math.random() * emojis.length)];
+
+            const el = document.createElement("div");
+            el.innerText = emoji;
+
+            el.style.position = "fixed";
+            el.style.left = Math.random() * 80 + "%";
+            el.style.top = "60%";
+            el.style.fontSize = (20 + Math.random() * 30) + "px";
+            el.style.opacity = "1";
+            el.style.transition = "all 1s ease-out";
+            el.style.pointerEvents = "none";
+
+            document.body.appendChild(el);
+
+            setTimeout(() => {
+                el.style.top = "20%";
+                el.style.opacity = "0";
+            }, 50);
+
+            setTimeout(() => {
+                document.body.removeChild(el);
+            }, 1000);
+        }
+
+        function showPopup(message) {
+            const popup = document.getElementById("popup");
+            popup.innerText = message;
+            popup.style.display = "block";
+
+            clearTimeout(popupTimer);
+
+            popupTimer = setTimeout(() => {
+                popup.style.display = "none";
+            }, 2500);
+        }
+
+        function fallbackShare(file, index) {
+            let shareText = `🔥 I scored in 30 Sec Challenge!
+🎤 ${file.challenge}
+
+👉 Try it now!`;
+
+            navigator.clipboard.writeText(shareText)
+                .then(() => {
+                    showPopup("📋 Copied + Audio downloaded. Share it 😈");
+                })
+                .catch(() => {
+                    showPopup("⚠️ Copy failed. Please copy manually.");
+                });
+
+            downloadRecording(index);
+        }
+
+        function stopCurrentAudio() {
+            if (currentAudio) {
+                currentAudio.pause();
+                currentAudio.currentTime = 0;
+                currentAudio = null;
+            }
+
+            if (currentEffect) {
+                currentEffect.pause();
+                currentEffect.currentTime = 0;
+                currentEffect = null;
+            }
+        }
+        async function startReelRecording(audioStream) {
+
+            const reelArea = document.getElementById("reelArea");
+
+            reelCanvas.width = 1080;
+            reelCanvas.height = 1920;
+
+            reelInterval = setInterval(async () => {
+
+                const canvasCapture = await html2canvas(reelArea, {
+                    backgroundColor: "#667eea",
+                    useCORS: true,
+                    scale: 2
+                });
+
+                reelCtx.clearRect(0, 0, reelCanvas.width, reelCanvas.height);
+
+                reelCtx.fillStyle = "#764ba2";
+                reelCtx.fillRect(
+                    0,
+                    0,
+                    reelCanvas.width,
+                    reelCanvas.height
+                );
+
+                reelCtx.drawImage(
+                    canvasCapture,
+                    0,
+                    150,
+                    reelCanvas.width,
+                    reelCanvas.height - 300
+                );
+
+            }, 100);
+
+            const videoStream = reelCanvas.captureStream(30);
+
+            reelStream = new MediaStream([
+                ...videoStream.getVideoTracks(),
+                ...audioStream.getAudioTracks()
+            ]);
+
+            reelRecorder = new MediaRecorder(reelStream, {
+                mimeType: "video/webm;codecs=vp9",
+                videoBitsPerSecond: 8000000
+            });
+
+            reelChunks = [];
+
+            reelRecorder.ondataavailable = e => {
+                if (e.data.size > 0) {
+                    reelChunks.push(e.data);
+                }
+            };
+
+            reelRecorder.onstop = () => {
+
+                clearInterval(reelInterval);
+
+                const reelBlob = new Blob(reelChunks, {
+                    type: "video/webm"
+                });
+
+                const reelURL = URL.createObjectURL(reelBlob);
+
+                const latestRecording = recordings[recordings.length - 1];
+
+                if (latestRecording) {
+                    latestRecording.video = reelURL;
+                }
+            };
+
+            reelRecorder.start();
+        }
+
+        window.addEventListener("beforeunload", () => {
+            if (stream) {
+                stream.getTracks().forEach(track => track.stop());
+            }
+            recordings.forEach(rec => {
+                if (rec.audio) {
+                    URL.revokeObjectURL(rec.audio);
+                }
+            });
+        });
+    </script>
+</body>
+
+</html>
