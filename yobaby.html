@@ -64,8 +64,10 @@
   display:flex;
   flex-direction:column;
   align-items:center;
-  justify-content:center;
+  justify-content:flex-start;
   height:100vh;
+  overflow-y:auto;
+  padding:20px 0;
 ">
     <div id="popup" style="
   position:fixed;
@@ -163,20 +165,22 @@
 
     <div id="reelArea" style="
 width:100%;
-max-width:1080px;
-height:1920px;
+max-width:500px;
+min-height:700px;
 display:flex;
 flex-direction:column;
 align-items:center;
 justify-content:center;
-padding:40px;
+padding:40px 20px;
 box-sizing:border-box;
 background:linear-gradient(to bottom, #667eea, #764ba2);
+border-radius:20px;
+margin-top:20px;
 ">
 
         <video id="cartoonVideo" autoplay muted loop playsinline src="videos/funny.mp4" style="
- width:420px;
- height:700px;
+ width:260px;
+ height:360px;
  object-fit:contain;
  border-radius:20px;
  margin-top:15px;
@@ -705,7 +709,7 @@ text-shadow:2px 2px 8px rgba(0,0,0,0.5);
 
                         document.getElementById("timer").innerText = "⏰ Time's up!";
                         document.getElementById("challenge").innerText =
-                            "✅ Saved! Tap 🚀 Start for next challenge 😈";
+                            "✅ Saved!";
                     }
 
                 }, 1000);
