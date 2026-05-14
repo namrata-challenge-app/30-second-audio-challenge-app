@@ -1149,10 +1149,7 @@ margin-left:10px;
                 ...audioStream.getAudioTracks()
             ]);
 
-            reelRecorder = new MediaRecorder(reelStream, {
-                mimeType: "video/mp4;codecs=vp9",
-                videoBitsPerSecond: 8000000
-            });
+            reelRecorder = new MediaRecorder(reelStream);
 
             reelChunks = [];
 
