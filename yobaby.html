@@ -659,9 +659,7 @@ text-shadow:2px 2px 8px rgba(0,0,0,0.5);
                         effect: randomEffect
                     });
 
-                    setTimeout(() => {
-                        displayRecordings();
-                    }, 500);
+                    displayRecordings();
 
                     setTimeout(() => {
                         playSaved(recordings.length - 1);
@@ -975,9 +973,10 @@ margin-left:10px;
             let link = document.createElement("a");
             link.href = rec.audio;
 
-            link.download = reelRecorder.mimeType.includes("mp4")
-                ? "funny-reel.mp4"
-                : "funny-reel.webm";
+            link.download =
+                reelRecorder.mimeType.includes("mp4")
+                    ? "funny-reel.mp4"
+                    : "funny-reel.webm";
 
             document.body.appendChild(link);
             link.click();
@@ -1198,9 +1197,10 @@ margin-left:10px;
 
                 const reelURL = URL.createObjectURL(reelBlob);
 
-                // ✅ FIX
-                if (recordings.length > 0) {
-                    recordings[recordings.length - 1].video = reelURL;
+                const latestRecording = recordings[recordings.length - 1];
+
+                if (latestRecording) {
+                    latestRecording.video = reelURL;
                 }
 
                 console.log("Video Ready:", reelURL);
