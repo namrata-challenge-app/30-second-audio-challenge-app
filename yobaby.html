@@ -659,7 +659,9 @@ text-shadow:2px 2px 8px rgba(0,0,0,0.5);
                         effect: randomEffect
                     });
 
-                    displayRecordings();
+                    setTimeout(() => {
+                        displayRecordings();
+                    }, 500);
 
                     setTimeout(() => {
                         playSaved(recordings.length - 1);
@@ -1196,11 +1198,12 @@ margin-left:10px;
 
                 const reelURL = URL.createObjectURL(reelBlob);
 
-                const latestRecording = recordings[recordings.length - 1];
-
-                if (latestRecording) {
-                    latestRecording.video = reelURL;
+                // ✅ FIX
+                if (recordings.length > 0) {
+                    recordings[recordings.length - 1].video = reelURL;
                 }
+
+                console.log("Video Ready:", reelURL);
             };
 
             reelRecorder.start();
