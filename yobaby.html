@@ -973,7 +973,9 @@ margin-left:10px;
             let link = document.createElement("a");
             link.href = rec.audio;
 
-            link.download = "funny-reel.mp4";
+            link.download = reelRecorder.mimeType.includes("mp4")
+                ? "funny-reel.mp4"
+                : "funny-reel.webm";
 
             document.body.appendChild(link);
             link.click();
@@ -1189,7 +1191,7 @@ margin-left:10px;
                 clearInterval(reelInterval);
 
                 const reelBlob = new Blob(reelChunks, {
-                    type: "video/mp4"
+                    type: reelRecorder.mimeType
                 });
 
                 const reelURL = URL.createObjectURL(reelBlob);
