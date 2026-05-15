@@ -973,9 +973,7 @@ margin-left:10px;
             let link = document.createElement("a");
             link.href = rec.audio;
 
-            link.download = rec.challenge
-                .replace(/[^a-z0-9]/gi, "_")
-                .toLowerCase() + ".webm";
+            link.download = "funny-reel.mp4";
 
             document.body.appendChild(link);
             link.click();
@@ -1010,32 +1008,49 @@ margin-left:10px;
         document.getElementById("stopBtn").style.display = "none";
 
         function shareRecording(index) {
+
             let file = recordings[index];
 
-            if (!file || !file.audio) {
-                showPopup("⚠️ Recording not found");
+            if (!file || !file.video) {
+                showPopup("⚠️ Video not ready yet");
                 return;
             }
 
             if (navigator.share && typeof navigator.canShare === "function") {
-                fetch(file.audio)
+
+                fetch(file.video)
                     .then(res => res.blob())
                     .then(blob => {
-                        let fileObj = new File([blob], "challenge.webm", { type: blob.type });
+
+                        let fileObj = new File(
+                            [blob],
+                            "challenge.mp4",
+                            { type: "video/mp4" }
+                        );
+
+                        console.log(fileObj.type);
 
                         if (navigator.canShare({ files: [fileObj] })) {
+
                             navigator.share({
                                 title: "30 Sec Challenge 🔥",
                                 text: file.challenge,
                                 files: [fileObj]
                             });
+
                         } else {
+
                             fallbackShare(file, index);
+
                         }
+
                     })
                     .catch(() => fallbackShare(file, index));
+
             } else {
+
                 fallbackShare(file, index);
+
             }
         }
 
@@ -1149,7 +1164,17 @@ margin-left:10px;
                 ...audioStream.getAudioTracks()
             ]);
 
-            reelRecorder = new MediaRecorder(reelStream);
+            let options = {
+                videoBitsPerSecond: 5000000
+            };
+
+            if (MediaRecorder.isTypeSupported("video/mp4")) {
+                options.mimeType = "video/mp4";
+            } else {
+                options.mimeType = "video/webm;codecs=vp8";
+            }
+
+            reelRecorder = new MediaRecorder(reelStream, options);
 
             reelChunks = [];
 
@@ -1164,7 +1189,7 @@ margin-left:10px;
                 clearInterval(reelInterval);
 
                 const reelBlob = new Blob(reelChunks, {
-                    type: "video/webm"
+                    type: "video/mp4"
                 });
 
                 const reelURL = URL.createObjectURL(reelBlob);
