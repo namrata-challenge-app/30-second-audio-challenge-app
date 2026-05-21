@@ -1054,6 +1054,7 @@ margin-left:10px;
 
             document.body.removeChild(link);
         }
+
         function downloadVideo(index) {
 
             let rec = recordings[index];
@@ -1063,20 +1064,34 @@ margin-left:10px;
                 return;
             }
 
-            let link = document.createElement("a");
+            fetch(rec.video)
+                .then(res => res.blob())
+                .then(blob => {
 
-            link.href = rec.video;
+                    // fake mp4 extension for WhatsApp
+                    let mp4Blob = new Blob([blob], {
+                        type: "video/mp4"
+                    });
 
-            link.download =
-                reelRecorder.mimeType.includes("mp4")
-                    ? "funny-reel.mp4"
-                    : "funny-reel.webm";
+                    let url = URL.createObjectURL(mp4Blob);
 
-            document.body.appendChild(link);
+                    let link = document.createElement("a");
 
-            link.click();
+                    link.href = url;
 
-            document.body.removeChild(link);
+                    link.download = "funny-reel.mp4";
+
+                    document.body.appendChild(link);
+
+                    link.click();
+
+                    document.body.removeChild(link);
+
+                    setTimeout(() => {
+                        URL.revokeObjectURL(url);
+                    }, 1000);
+
+                });
         }
 
         function toggleStopButton(show) {
@@ -1239,9 +1254,7 @@ margin-left:10px;
             ]);
 
             // FORCE WEBM VP8 + OPUS
-            reelRecorder = new MediaRecorder(reelStream, {
-                mimeType: "video/webm;codecs=vp8,opus"
-            });
+            reelRecorder = new MediaRecorder(reelStream);
 
             console.log("REEL TYPE:", reelRecorder.mimeType);
 
