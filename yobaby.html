@@ -392,6 +392,7 @@ text-shadow:2px 2px 8px rgba(0,0,0,0.5);
         let preloadedSounds = {};
         let bgMusic = null;
         let audioCtx = null;
+        let mixedAudioStream = null;
         let reelRecorder;
         let reelChunks = [];
         let reelStream = null;
@@ -577,6 +578,7 @@ text-shadow:2px 2px 8px rgba(0,0,0,0.5);
 
                 const micSource = audioCtx.createMediaStreamSource(stream);
                 const destination = audioCtx.createMediaStreamDestination();
+                mixedAudioStream = destination.stream;
 
                 // 🔊 MIC BOOST
                 const gainNode = audioCtx.createGain();
@@ -625,7 +627,29 @@ text-shadow:2px 2px 8px rgba(0,0,0,0.5);
                 });
 
                 // 👉 FINAL RECORDING STREAM
-                mediaRecorder = new MediaRecorder(destination.stream);
+                let audioOptions = {};
+
+                if (MediaRecorder.isTypeSupported("audio/mp4")) {
+
+                    audioOptions.mimeType = "audio/mp4";
+
+                } else if (
+                    MediaRecorder.isTypeSupported("audio/webm;codecs=pcm")
+                ) {
+
+                    audioOptions.mimeType = "audio/webm;codecs=pcm";
+
+                } else {
+
+                    audioOptions.mimeType = "audio/webm";
+                }
+
+                mediaRecorder = new MediaRecorder(
+                    destination.stream,
+                    audioOptions
+                );
+
+                console.log(mediaRecorder.mimeType);
 
                 audioChunks = [];
 
@@ -640,6 +664,7 @@ text-shadow:2px 2px 8px rgba(0,0,0,0.5);
                     document.getElementById("stopBtn").style.display = "none";
 
                     let btn = document.getElementById("startBtn");
+
                     btn.style.opacity = "1";
                     btn.disabled = false;
                     btn.style.pointerEvents = "auto";
@@ -647,17 +672,30 @@ text-shadow:2px 2px 8px rgba(0,0,0,0.5);
                     btn.style.animation = "pulse 2s infinite";
 
                     isRecording = false;
+
                     enablePlayButtons();
 
-                    const audioBlob = new Blob(audioChunks, { type: "audio/webm" });
-                    const url = URL.createObjectURL(audioBlob);
-
-                    // ✅ SAVE WITH EFFECT
-                    recordings.push({
-                        challenge: currentChallengeText,
-                        audio: url,
-                        effect: randomEffect
+                    const audioBlob = new Blob(audioChunks, {
+                        type: mediaRecorder.mimeType
                     });
+
+                    const audioURL = URL.createObjectURL(audioBlob);
+
+                    // ✅ create recording object FIRST
+                    let recordingObj = {
+                        challenge: currentChallengeText,
+                        audio: audioURL,
+                        effect: randomEffect,
+                        video: reelChunks.length > 0
+                            ? URL.createObjectURL(
+                                new Blob(reelChunks, {
+                                    type: reelRecorder.mimeType
+                                })
+                            )
+                            : null
+                    };
+
+                    recordings.push(recordingObj);
 
                     displayRecordings();
 
@@ -672,7 +710,7 @@ text-shadow:2px 2px 8px rgba(0,0,0,0.5);
                 };
 
                 mediaRecorder.start();
-                startReelRecording(destination.stream);
+                startReelRecording();
                 toggleStopButton(true);
 
                 beepSound.currentTime = 0;
@@ -730,7 +768,7 @@ text-shadow:2px 2px 8px rgba(0,0,0,0.5);
             }
         }
 
-        function stopRecording() {
+        async function stopRecording() {
 
             progressBar.style.width = "0%";
 
@@ -739,34 +777,67 @@ text-shadow:2px 2px 8px rgba(0,0,0,0.5);
                 timer = null;
             }
 
+            // ✅ stop reel recorder FIRST
+            if (reelRecorder && reelRecorder.state !== "inactive") {
+
+                await new Promise(resolve => {
+
+                    reelRecorder.onstop = () => {
+
+                        clearInterval(reelInterval);
+
+                        const reelBlob = new Blob(reelChunks, {
+                            type: reelRecorder.mimeType
+                        });
+
+                        const reelURL = URL.createObjectURL(reelBlob);
+
+                        window.latestReelURL = reelURL;
+
+                        console.log("✅ Reel Ready:", reelURL);
+
+                        resolve();
+                    };
+
+                    setTimeout(() => {
+                        reelRecorder.stop();
+                    }, 500);
+
+                });
+            }
+
+            // ✅ THEN stop audio recorder
             if (mediaRecorder && mediaRecorder.state !== "inactive") {
                 mediaRecorder.stop();
-                if (reelRecorder && reelRecorder.state !== "inactive") {
-                    reelRecorder.stop();
-                }
             }
 
-            // 🎤 stop mic
-            if (stream) {
-                stream.getTracks().forEach(track => track.stop());
-            }
+            // ✅ small delay before stopping stream
+            setTimeout(() => {
+
+                if (stream) {
+                    stream.getTracks().forEach(track => track.stop());
+                }
+
+                if (bgMusic) {
+                    bgMusic.pause();
+                    bgMusic.currentTime = 0;
+                    bgMusic = null;
+                }
+
+                if (audioCtx) {
+                    audioCtx.close();
+                    audioCtx = null;
+                }
+
+            }, 1000);
 
             if (isRecording) {
-                document.getElementById("timer").innerText = "⏹ Stopped!";
-                document.getElementById("challenge").innerText = "✅ Saved early! 🔥";
-            }
 
-            // 🎵 stop background music
-            if (bgMusic) {
-                bgMusic.pause();
-                bgMusic.currentTime = 0;
-                bgMusic = null;
-            }
+                document.getElementById("timer").innerText =
+                    "⏹ Stopped!";
 
-            // 🔇 close audio context (VERY IMPORTANT)
-            if (audioCtx) {
-                audioCtx.close();
-                audioCtx = null;
+                document.getElementById("challenge").innerText =
+                    "✅ Saved early! 🔥";
             }
         }
 
@@ -963,6 +1034,7 @@ margin-left:10px;
         }
 
         function downloadRecording(index) {
+
             let rec = recordings[index];
 
             if (!rec || !rec.audio) {
@@ -971,15 +1043,15 @@ margin-left:10px;
             }
 
             let link = document.createElement("a");
+
             link.href = rec.audio;
 
-            link.download =
-                reelRecorder.mimeType.includes("mp4")
-                    ? "funny-reel.mp4"
-                    : "funny-reel.webm";
+            link.download = "funny-reel.webm";
 
             document.body.appendChild(link);
+
             link.click();
+
             document.body.removeChild(link);
         }
         function downloadVideo(index) {
@@ -995,7 +1067,10 @@ margin-left:10px;
 
             link.href = rec.video;
 
-            link.download = "funny-reel.mp4";
+            link.download =
+                reelRecorder.mimeType.includes("mp4")
+                    ? "funny-reel.mp4"
+                    : "funny-reel.webm";
 
             document.body.appendChild(link);
 
@@ -1125,59 +1200,50 @@ margin-left:10px;
                 currentEffect = null;
             }
         }
-        async function startReelRecording(audioStream) {
+        async function startReelRecording() {
 
             const reelArea = document.getElementById("reelArea");
 
-            reelCanvas.width = 1080;
-            reelCanvas.height = 1920;
+            reelCanvas.width = 720;
+            reelCanvas.height = 1280;
 
             reelInterval = setInterval(async () => {
 
                 const canvasCapture = await html2canvas(reelArea, {
                     backgroundColor: "#667eea",
                     useCORS: true,
-                    scale: 2
+                    scale: 1
                 });
 
                 reelCtx.clearRect(0, 0, reelCanvas.width, reelCanvas.height);
 
-                reelCtx.fillStyle = "#764ba2";
-                reelCtx.fillRect(
+                reelCtx.drawImage(
+                    canvasCapture,
                     0,
                     0,
                     reelCanvas.width,
                     reelCanvas.height
                 );
 
-                reelCtx.drawImage(
-                    canvasCapture,
-                    0,
-                    150,
-                    reelCanvas.width,
-                    reelCanvas.height - 300
-                );
+            }, 120);
 
-            }, 100);
+            // VIDEO TRACK
+            const canvasStream = reelCanvas.captureStream(25);
 
-            const videoStream = reelCanvas.captureStream(30);
+            // AUDIO TRACK
+            const audioTrack = mixedAudioStream.getAudioTracks()[0];
 
             reelStream = new MediaStream([
-                ...videoStream.getVideoTracks(),
-                ...audioStream.getAudioTracks()
+                canvasStream.getVideoTracks()[0],
+                audioTrack
             ]);
 
-            let options = {
-                videoBitsPerSecond: 5000000
-            };
+            // FORCE WEBM VP8 + OPUS
+            reelRecorder = new MediaRecorder(reelStream, {
+                mimeType: "video/webm;codecs=vp8,opus"
+            });
 
-            if (MediaRecorder.isTypeSupported("video/mp4")) {
-                options.mimeType = "video/mp4";
-            } else {
-                options.mimeType = "video/webm;codecs=vp8";
-            }
-
-            reelRecorder = new MediaRecorder(reelStream, options);
+            console.log("REEL TYPE:", reelRecorder.mimeType);
 
             reelChunks = [];
 
@@ -1187,26 +1253,7 @@ margin-left:10px;
                 }
             };
 
-            reelRecorder.onstop = () => {
-
-                clearInterval(reelInterval);
-
-                const reelBlob = new Blob(reelChunks, {
-                    type: reelRecorder.mimeType
-                });
-
-                const reelURL = URL.createObjectURL(reelBlob);
-
-                const latestRecording = recordings[recordings.length - 1];
-
-                if (latestRecording) {
-                    latestRecording.video = reelURL;
-                }
-
-                console.log("Video Ready:", reelURL);
-            };
-
-            reelRecorder.start();
+            reelRecorder.start(100);
         }
 
         window.addEventListener("beforeunload", () => {
